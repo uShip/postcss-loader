@@ -1,5 +1,5 @@
 {
-  "name": "postcss-loader",
+  "name": "@uship/postcss-serializable-loader",
   "version": "0.13.0",
   "description": "PostCSS loader for webpack",
   "keywords": ["webpack", "loader", "css", "postcss", "postcss-runner"],

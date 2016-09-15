@@ -14,8 +14,9 @@ module.exports = {
     },
     postcss: function () {
         return {
-            defaults: [blue, red],
-            blues:    [blue]
+            defaults:       [blue, red],
+            blues:          [blue],
+            declarePlugins: [{ plugin: require.resolve('./plugins/blue') }]
         };
     },
     plugins: [

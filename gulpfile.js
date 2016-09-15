@@ -29,4 +29,4 @@ gulp.task('test', ['build'], function () {
     return gulp.src('build/*.js', { read: false }).pipe(mocha());
 });
 
-gulp.task('default', ['lint', 'test']);
+gulp.task('default', ['test']);

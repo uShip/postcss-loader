@@ -19,6 +19,49 @@ function PostCSSLoaderError(error) {
 PostCSSLoaderError.prototype = Object.create(Error.prototype);
 PostCSSLoaderError.prototype.constructor = PostCSSLoaderError;
 
+function usesDeclarativeConfig(plugins) {
+    if ( !Array.isArray(plugins) ) {
+        plugins = [plugins];
+    }
+    return plugins.every(function (plugin) {
+        return typeof plugin.plugin === 'string';
+    });
+}
+
+function initializePluginsFromConfig(plugins, loader) {
+    if ( !Array.isArray(plugins) ) {
+        plugins = [plugins];
+    }
+
+    return plugins.reduce(function (initializedPlugins, pluginConfig) {
+        try {
+            var plugin = require(pluginConfig.plugin);
+            var args = [];
+
+            if ( pluginConfig.options ) {
+                args = Array.isArray(pluginConfig.options.args) ?
+                    pluginConfig.options.args :
+                    [pluginConfig.options];
+
+                plugin = plugin.apply(null, args);
+            } else if (pluginConfig.requiresInitialization) {
+                plugin = plugin();
+            }
+
+            initializedPlugins.push(plugin);
+        } catch (e) {
+            loader.emitWarning(
+                'Failed to import loader `' +
+                pluginConfig.plugin +
+                '`. Configuration given: ' +
+                JSON.stringify(pluginConfig, null, '  ')
+            );
+        }
+
+        return initializedPlugins;
+    }, []);
+}
+
 module.exports = function (source, map) {
     if ( this.cacheable ) this.cacheable();
 
@@ -61,6 +104,9 @@ module.exports = function (source, map) {
             throw new Error('PostCSS plugin pack is not defined in options');
         }
     }
+    if ( usesDeclarativeConfig(plugins) ) {
+        plugins = initializePluginsFromConfig(plugins, this);
+    }
 
     if ( params.syntax ) {
         opts.syntax = require(params.syntax);
@@ -83,11 +129,13 @@ module.exports = function (source, map) {
     }
 
     // Allow plugins to add or remove postcss plugins
-    plugins = this._compilation.applyPluginsWaterfall(
-        'postcss-loader-before-processing',
-        [].concat(plugins),
-        params
-    );
+    if (this._compilation) {
+        plugins = this._compilation.applyPluginsWaterfall(
+            'postcss-loader-before-processing',
+            [].concat(plugins),
+            params
+        );
+    }
 
     postcss(plugins).process(source, opts)
         .then(function (result) {
